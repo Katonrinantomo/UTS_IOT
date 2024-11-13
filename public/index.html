@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .stats-container, .records-container, .month-year-container, .controls-container { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f4f4f4; }
+        button { padding: 10px 20px; margin-right: 10px; cursor: pointer; }
+        .status { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Sensor Data Dashboard</h1>
+
+    <!-- Temperature Statistics -->
+    <div class="stats-container">
+        <h2>Temperature Statistics</h2>
+        <p>Max Temperature: <span id="max-temp"></span> °C</p>
+        <p>Min Temperature: <span id="min-temp"></span> °C</p>
+        <p>Average Temperature: <span id="avg-temp"></span> °C</p>
+    </div>
+
+    <!-- Records with Max Temperature and Humidity -->
+    <div class="records-container">
+        <h2>Records with Max Temperature and Humidity</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Index</th>
+                    <th>Temperature (°C)</th>
+                    <th>Humidity (%)</th>
+                    <th>Brightness</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody id="data-table">
+                <!-- Data will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Month-Year with Max Temperature, Humidity, Brightness -->
+    <div class="month-year-container">
+        <h2>Month-Year of Max Values</h2>
+        <ul id="month-year-list">
+            <!-- Month-Year data will be populated here -->
+        </ul>
+    </div>
+
+    <!-- Relay Control -->
+    <div class="controls-container">
+        <h2>Relay Control</h2>
+        <button onclick="sendRelayCommand('on')">Turn Relay ON</button>
+        <button onclick="sendRelayCommand('off')">Turn Relay OFF</button>
+        <p class="status">Current Relay Status: <span id="relay-status">OFF</span></p>
+    </div>
+
+    <script>
+        // Fetch data from the backend API
+        async function fetchData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+
+                // Display temperature statistics
+                document.getElementById('max-temp').textContent = data.suhumax;
+                document.getElementById('min-temp').textContent = data.suhummin;
+                document.getElementById('avg-temp').textContent = data.suhurata;
+
+                // Populate records table
+                const dataTable = document.getElementById('data-table');
+                dataTable.innerHTML = ''; // Clear existing data
+                data.nilai_suhu_max_humid_max.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${record.idx}</td>
+                        <td>${record.suhu} °C</td>
+                        <td>${record.humid} %</td>
+                        <td>${record.kecerahan}</td>
+                        <td>${record.timestamp}</td>
+                    `;
+                    dataTable.appendChild(row);
+                });
+
+                // Display month-year max values
+                const monthYearList = document.getElementById('month-year-list');
+                monthYearList.innerHTML = ''; // Clear existing data
+                data.month_year_max.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = item.month_year;
+                    monthYearList.appendChild(listItem);
+                });
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Function to send relay commands
+        async function sendRelayCommand(state) {
+            const url = state === 'on' ? '/relay/on' : '/relay/off';
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const result = await response.json();
+                document.getElementById('relay-status').textContent = result.status;
+            } catch (error) {
+                console.error('Error sending relay command:', error);
+            }
+        }
+
+        // Fetch data on load
+        fetchData();
+    </script>
+
+</body>
+</html>
